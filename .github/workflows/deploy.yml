@@ -13,6 +13,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to EC2
+      - name: Setup SSH
         run: |
-          echo "Deploying website..."
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
+
+      - name: Deploy files
+        run: |
+          scp -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no \
+          index.html style.css \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/aws-linux-website/
+
+      - name: Reload Nginx
+        run: |
+          ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
+          "sudo systemctl reload nginx"
