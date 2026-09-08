@@ -13,20 +13,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
-          chmod 600 ~/.ssh/ec2_key
-
-      - name: Deploy files
-        run: |
-          scp -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no \
-          index.html style.css \
-          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/aws-linux-website/
-
-      - name: Reload Nginx
-        run: |
-          ssh -i ~/.ssh/ec2_key -o StrictHostKeyChecking=no \
-          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-          "sudo systemctl reload nginx"
+      - name: Deploy to AWS EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /var/www/html
+            sudo git pull origin main
+            sudo systemctl restart nginx
